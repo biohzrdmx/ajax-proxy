@@ -310,6 +310,18 @@ class AjaxProxy
     }
 
     /**
+     * The function "getallheaders()" may not exist if php isn't installed as an Apache-module
+     */
+	protected function _getallheaders() {
+		foreach($_SERVER as $h=>$v) {
+			if(ereg('HTTP_(.+)',$h,$hp)) {
+				$headers[$hp[1]]=$v;
+			}
+		}
+		return $headers;
+	}
+
+    /**
      * Load raw headers into the _rawHeaders property.
      *  This method REQUIRES APACHE
      * @throws Exception When we can't load request headers (perhaps when Apache
@@ -319,7 +331,10 @@ class AjaxProxy
     {
         if($this->_rawHeaders !== NULL) return;
         
-        $this->_rawHeaders = getallheaders();
+		if (function_exists('getallheaders')) 
+			$this->_rawHeaders = getallheaders();
+		else 
+			$this->_rawHeaders = $this->_getallheaders();
 
         if($this->_rawHeaders === FALSE)
             throw new Exception("Could not get request headers");
@@ -369,6 +384,7 @@ class AjaxProxy
     protected function _makeCurlRequest($url)
     {
         $curl_handle = curl_init($url);
+		$extra_headers = array();
         /**
          * Check to see if this is a POST request
          * @todo What should we do for PUTs? Others?
@@ -377,15 +393,43 @@ class AjaxProxy
         {
             curl_setopt($curl_handle, CURLOPT_POST, true);
             curl_setopt($curl_handle, CURLOPT_POSTFIELDS, $this->_requestBody);
+		} 
+		else if($this->_requestMethod === self::REQUEST_METHOD_PUT)
+        {
+			# Based on adrianchung's fork and:
+			#  http://stackoverflow.com/questions/2153650/how-to-start-a-get-post-put-delete-request-and-judge-request-type-in-php
+			
+			$fh = tmpfile();
+            $requestLength = strlen($this->_requestBody);
+
+            fwrite($fh, $this->_requestBody);
+            fseek($fh, 0);
+
+            curl_setopt($curl_handle, CURLOPT_PUT, true);
+            curl_setopt($curl_handle, CURLOPT_INFILE, $fh);
+            curl_setopt($curl_handle, CURLOPT_INFILESIZE, $requestLength);
+        } 
+		else if($this->_requestMethod === self::REQUEST_METHOD_DELETE)
+        {
+            curl_setopt($curl_handle, CURLOPT_CUSTOMREQUEST, 'DELETE');
         }
+		
+		# Check whether we should include the X-HTTP-Method-Override header or not
+		if(key_exists('X-HTTP-Method-Override', $this->_rawHeaders)) 
+			$extra_headers[] = 'X-HTTP-Method-Override: ' . $this->_rawHeaders['X-HTTP-Method-Override'];
 
         curl_setopt($curl_handle, CURLOPT_HEADER, true);
         curl_setopt($curl_handle, CURLOPT_USERAGENT, $this->_requestUserAgent);
         curl_setopt($curl_handle, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curl_handle, CURLOPT_COOKIE, $this->_buildProxyRequestCookieString());
-        curl_setopt($curl_handle, CURLOPT_HTTPHEADER, $this->_generateProxyRequestHeaders());
+        curl_setopt($curl_handle, CURLOPT_HTTPHEADER, array_merge( $this->_generateProxyRequestHeaders(), $extra_headers ));
+		
+		$rawResponse = curl_exec($curl_handle);
+		
+		if (isset($fh))
+			fclose($fh);
 
-        return curl_exec($curl_handle);
+        return $rawResponse;
     }
 
     /**
@@ -454,6 +498,11 @@ class AjaxProxy
     {
         # Set the headers required to work with fopen
         $headers =  $this->_generateProxyRequestHeaders(TRUE);
+		
+		# Check whether we should include the X-HTTP-Method-Override header or not
+		if(key_exists('X-HTTP-Method-Override', $this->_rawHeaders)) 
+			$headers.= 'X-HTTP-Method-Override: ' . $this->_rawHeaders['X-HTTP-Method-Override'] . "\n";
+		
         $headers.= 'Cookie: ' . $this->_buildProxyRequestCookieString();
 
         # Create the stream context
@@ -556,7 +605,7 @@ class AjaxProxy
     {
         $headers                 = array();
         $headers['Content-Type'] = $this->_requestContentType;
-
+		
         if($as_string)
         {
             $data = "";
@@ -566,7 +615,7 @@ class AjaxProxy
 
             $headers = $data;
         }
-
+		
         return $headers;
     }
 
@@ -671,5 +720,5 @@ class AjaxProxy
  * Here's the actual script part. Comment it out or remove it if you simply want
  *  the class' functionality
  */
-$proxy = new AjaxProxy('http://login.example.com/');
+$proxy = new AjaxProxy('http://login.example.com');
 $proxy->execute();

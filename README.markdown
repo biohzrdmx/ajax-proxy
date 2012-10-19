@@ -6,6 +6,8 @@ ajax calls that **supports cookies** and has minimal dependencies
 
 Written and maintained by [Kenny Katzgrau](http://codefury.net) @ [HUGE](http://hugeinc.com)
 
+Contributions by [adrianchung](https://github.com/adrianchung/ajax-proxy) & [biohzrdmx](https://github.com/biohzrdmx/ajax-proxy)
+
 ## Overview
 
 This package is a PHP class and script to proxy AJAX request accross domains.
@@ -145,6 +147,20 @@ With ajax-proxy, you'll get a more powerful, rock-solid proxy and less time than
 it would have taken you to write a basic one yourself.
 
 Oh, and it's incredibly easy to use.
+
+## Features included in this fork
+
+This class is awesome, but it had a minor bug which caused it to crash and burn when used on a
+non-apache-module php setup. The `getallheaders()` function may not be present on certain servers,
+so I added a `_getallheaders()` fallback routine to handle this situation.
+
+Also I've included code from adrianchung's fork that enables the use of PUT and DELETE requests with
+cURL.
+
+Finally, I've added support for the `X-HTTP-Method-Override` header so you can send PUT and DELETE
+requests as POST. This may be required on older servers and crappy hosting services, just include
+the extra header on your request (maybe by using the `headers` parameter on `jQuery.ajax()` or by
+using the `emulateHTTP` option in Backbone.js, etc).
 
 ## Special Thanks
 
