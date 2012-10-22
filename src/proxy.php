@@ -418,6 +418,8 @@ class AjaxProxy
 		$lowercased_headers = array_change_key_case($this->_rawHeaders, CASE_LOWER);
 		if (isset( $lowercased_headers[ 'x-http-method-override' ] ))
 			$extra_headers[] = 'X-HTTP-Method-Override: ' . $lowercased_headers['x-http-method-override'];
+		else if (isset( $lowercased_headers[ 'x_http_method_override' ] ))
+			$extra_headers[] = 'X-HTTP-Method-Override: ' . $lowercased_headers['x_http_method_override'];
 
         curl_setopt($curl_handle, CURLOPT_HEADER, true);
         curl_setopt($curl_handle, CURLOPT_USERAGENT, $this->_requestUserAgent);
@@ -504,6 +506,8 @@ class AjaxProxy
 		$lowercased_headers = array_change_key_case($this->_rawHeaders, CASE_LOWER);
 		if (isset( $lowercased_headers[ 'x-http-method-override' ] ))
 			$headers.= 'X-HTTP-Method-Override: ' . $lowercased_headers['x-http-method-override'] . "\n";
+		else if (isset( $lowercased_headers[ 'x_http_method_override' ] ))
+			$headers.= 'X-HTTP-Method-Override: ' . $lowercased_headers['x_http_method_override'] . "\n";
 		
         $headers.= 'Cookie: ' . $this->_buildProxyRequestCookieString();
 
