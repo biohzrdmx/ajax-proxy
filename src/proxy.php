@@ -226,7 +226,7 @@ class AjaxProxy
      */
     protected function _loadRoute()
     {
-        if(!key_exists('route', $_GET))
+        if(!isset( $_GET[ 'route' ] ))
             throw new Exception("You must supply a 'route' parameter in the request");
 
         $this->_route = $_GET['route'];
@@ -256,7 +256,7 @@ class AjaxProxy
     {
         if($this->_requestMethod !== NULL) return;
 
-        if(! key_exists('REQUEST_METHOD', $_SERVER))
+        if(! isset( $_SERVER[ 'REQUEST_METHOD' ] ))
             throw new Exception("Request method unknown");
 
         $method = strtolower($_SERVER['REQUEST_METHOD']);
@@ -281,7 +281,7 @@ class AjaxProxy
     {
         if($this->_requestUserAgent !== NULL) return;
 
-        if(! key_exists('HTTP_USER_AGENT', $_SERVER))
+        if(! isset( $_SERVER[ 'HTTP_USER_AGENT' ] ))
             throw new Exception("No HTTP User Agent was found");
 
         $this->_requestUserAgent = $_SERVER['HTTP_USER_AGENT'];
@@ -305,7 +305,7 @@ class AjaxProxy
     {
         $this->_loadRawHeaders();
 
-        if(key_exists('Content-Type', $this->_rawHeaders))
+        if(isset( $this->_rawHeaders[ 'Content-Type' ] ))
             $this->_requestContentType = $this->_rawHeaders['Content-Type'];
     }
 
@@ -351,7 +351,7 @@ class AjaxProxy
         if($this->_allowedHostnames === NULL)
             return;
 
-        if(key_exists('REMOTE_HOST', $_SERVER))
+        if(isset( $_SERVER[ 'REMOTE_HOST' ] ))
             $host = $_SERVER['REMOTE_HOST'];
         else
             $host = $_SERVER['REMOTE_ADDR'];
@@ -415,8 +415,9 @@ class AjaxProxy
         }
 		
 		# Check whether we should include the X-HTTP-Method-Override header or not
-		if(key_exists('X-HTTP-Method-Override', $this->_rawHeaders)) 
-			$extra_headers[] = 'X-HTTP-Method-Override: ' . $this->_rawHeaders['X-HTTP-Method-Override'];
+		$lowercased_headers = array_change_key_case($this->_rawHeaders, CASE_LOWER);
+		if (isset( $lowercased_headers[ 'x-http-method-override' ] ))
+			$extra_headers[] = 'X-HTTP-Method-Override: ' . $lowercased_headers['x-http-method-override'];
 
         curl_setopt($curl_handle, CURLOPT_HEADER, true);
         curl_setopt($curl_handle, CURLOPT_USERAGENT, $this->_requestUserAgent);
@@ -463,7 +464,7 @@ class AjaxProxy
      */
     protected function _buildResponseHeaderFromMeta($meta)
     {
-        if(! array_key_exists('wrapper_data', $meta))
+        if(! isset( $meta[ 'wrapper_data' ] ))
             throw new Exception("Did not receive a valid response from the server");
 
         $headers = $meta['wrapper_data'];
@@ -500,8 +501,9 @@ class AjaxProxy
         $headers =  $this->_generateProxyRequestHeaders(TRUE);
 		
 		# Check whether we should include the X-HTTP-Method-Override header or not
-		if(key_exists('X-HTTP-Method-Override', $this->_rawHeaders)) 
-			$headers.= 'X-HTTP-Method-Override: ' . $this->_rawHeaders['X-HTTP-Method-Override'] . "\n";
+		$lowercased_headers = array_change_key_case($this->_rawHeaders, CASE_LOWER);
+		if (isset( $lowercased_headers[ 'x-http-method-override' ] ))
+			$headers.= 'X-HTTP-Method-Override: ' . $lowercased_headers['x-http-method-override'] . "\n";
 		
         $headers.= 'Cookie: ' . $this->_buildProxyRequestCookieString();
 
@@ -628,7 +630,7 @@ class AjaxProxy
     {
         $cookie_string  = '';
 
-        if(key_exists('Cookie', $this->_rawHeaders))
+        if(isset( $this->_rawHeaders[ 'Cookie' ] ))
             $cookie_string = $this->_rawHeaders['Cookie'];
 
         return $cookie_string;
